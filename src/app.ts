@@ -4,6 +4,12 @@ import winston from 'winston'
 import 'dotenv/config'
 import { mkdir } from 'fs/promises'
 
+declare var process : {
+  env: {
+    CHAT: string
+  }
+}
+
 const date = () => {
     let currentDate = moment().unix()
     return moment.unix(currentDate).format("DD-MM-YYYY-HH:mm:ss")
@@ -24,7 +30,8 @@ const logger = winston.createLogger({
 })
 
 
-function wait(delay) {
+function wait(delay: number) {
+
     return new Promise(r => setTimeout(r, delay));
 }
 (async () => {
@@ -73,18 +80,18 @@ function wait(delay) {
     await page.keyboard.type(process.env.CHAT)
 
     const chat = await page.waitForSelector('[role="grid"] [role="listitem"]')
-    let label;
-    await chat.click().then(async () => {
+    let label: string | null | undefined;
+    await chat?.click().then(async () => {
         let el = await page.$('[role="grid"] [role="listitem"] span')
-        label = await page.evaluate(element => element.textContent, el)
+        label = await page.evaluate(element => element?.textContent, el)
         logger.info(`opened chat ${label}`)
     }).then(async () => {
-        let dir = `./screenshots/${label.toLowerCase()}`
+        let dir = `./screenshots/${label?.toLowerCase()}`
         await mkdir(dir)
     }).catch((e) => logger.error(e))
 
     const chatPanel = await page.waitForSelector('[data-testid="conversation-panel-wrapper"]')
-    chatPanel.scrollIntoView()
+    chatPanel?.scrollIntoView()
 
     await page.setViewport({
         width: 412,
@@ -93,20 +100,20 @@ function wait(delay) {
 
     await wait(2000)
 
-    let messageCount = await page.evaluate(e => {
+    let messageCount = await page.evaluate(() => {
         return document.querySelectorAll(`[data-testid="conversation-panel-wrapper"] [role="row"]:not(:has([data-testid="msg-notification-container"]))`).length
     })
 
     logger.info("Listening to new messages")
 
     while(true) {
-        let messageLength = await page.evaluate(e => {
+        let messageLength = await page.evaluate(() => {
             return document.querySelectorAll(`[data-testid="conversation-panel-wrapper"] [role="row"]:not(:has([data-testid="msg-notification-container"]))`).length
         })
         
         if (messageCount < messageLength) {
             await page.screenshot({
-                path: `./screenshots/${label.toLowerCase()}/${date()}.png`
+                path: `./screenshots/${label?.toLowerCase()}/${date()}.png`
             }).then(() => logger.info("Screenshotted new message!"))
             messageCount = messageLength
         }
