@@ -1,0 +1,17 @@
+{
+  "name": "whatsapp-logger",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon ./index.js localhost 8080"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "log4js": "^6.9.1",
+    "moment": "^2.29.4",
+    "nodemon": "^2.0.22",
+    "puppeteer": "^20.7.3",
+    "selenium-webdriver": "^4.10.0",
+    "winston": "^3.9.0"
+  }
+}
