@@ -34,11 +34,12 @@ function wait(delay: number) {
 
     return new Promise(r => setTimeout(r, delay));
 }
+
 (async () => {
     logger.info("Starting browser")
     const qrBrowser = await puppeteer.launch({
         headless: false,
-        userDataDir: 'data/userdata'
+        userDataDir: '.\\data'
         // executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
     })
 
@@ -46,24 +47,30 @@ function wait(delay: number) {
     const qrPage = await qrBrowser.newPage()
     await qrPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3641.0 Safari/537.36')
     await qrPage.goto(`https://web.whatsapp.com`)
-    await qrPage.waitForFunction(() => !document.querySelector('[data-testid="wa-web-loading-screen"]'))
+    // await qrPage.waitForFunction(() => !document.querySelector('[data-testid="wa-web-loading-screen"]'))
+    await qrPage.waitForFunction(() => !document.querySelector('html')?.classList.contains('no-js'))
 
     /**
      * Check if WhatsApp is logged in, 
      * otherwise wait for QR code to be scanned
      */
-    await wait(5000)
 
     while(true) {
         const landing = await qrPage.$('.landing-main')
         if (landing == null) break
     }
 
+    await qrPage.waitForSelector("#side", {
+      timeout: 0
+    }).then(() => {
+        logger.info("Successfully loaded WhatsApp!")
+    })
+
     await qrBrowser.close()
 
     const browser = await puppeteer.launch({
         // headless: false,
-        userDataDir: 'data/userdata'
+        userDataDir: '.\\data'
         // executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
     })
 
@@ -72,7 +79,9 @@ function wait(delay: number) {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3641.0 Safari/537.36')
     await page.goto(`https://web.whatsapp.com`)
 
-    await page.waitForSelector("#side").then(() => {
+    await page.waitForSelector("#side", {
+      timeout: 0
+    }).then(() => {
         logger.info("Successfully loaded WhatsApp!")
     })
 
@@ -100,24 +109,35 @@ function wait(delay: number) {
 
     await wait(2000)
 
-    let messageCount = await page.evaluate(() => {
-        return document.querySelectorAll(`[data-testid="conversation-panel-wrapper"] [role="row"]:not(:has([data-testid="msg-notification-container"]))`).length
-    })
-
     logger.info("Listening to new messages")
 
-    while(true) {
-        let messageLength = await page.evaluate(() => {
-            return document.querySelectorAll(`[data-testid="conversation-panel-wrapper"] [role="row"]:not(:has([data-testid="msg-notification-container"]))`).length
-        })
-        
-        if (messageCount < messageLength) {
-            await page.screenshot({
-                path: `./screenshots/${label?.toLowerCase()}/${date()}.png`
-            }).then(() => logger.info("Screenshotted new message!"))
-            messageCount = messageLength
-        }
+    const messageCallback = async (message: any) => {
+      await mkdir(`./screenshots/${label?.toLowerCase()}`, {
+        recursive: true
+      })
 
-        await wait(200)
+      await page.screenshot({
+        path: `./screenshots/${label?.toLowerCase()}/${date()}.png`
+      }).then(() => logger.info("Screenshotted new message!"))
+
+      logger.info(message)
     }
+
+    await page.exposeFunction('messageCallback', messageCallback)
+
+    await page.evaluate(async () => {
+      const target = document.querySelector(`[role="application"]`)
+
+      const observer = new MutationObserver(async (messages) => {
+        for (let message of messages) {
+          if (message.type === 'childList') {
+            await messageCallback(message)
+          }
+        }
+      })
+
+      observer.observe(target!, {
+        childList: true
+      })
+    })
 })()

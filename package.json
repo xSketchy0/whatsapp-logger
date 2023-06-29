@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "npx nodemon",
     "build": "rimraf ./out tsconfig.tsbuildinfo && npx tsc",
-    "start": "npm run build && node ./out/app.js"
+    "start": "npm run build && node ./out/app.js",
+    "clean": "rimraf ./out ./data .\\data ./logs ./screenshots"
   },
   "dependencies": {
     "@types/node": "^20.3.2",
