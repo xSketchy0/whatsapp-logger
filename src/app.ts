@@ -37,14 +37,14 @@ function wait(delay: number) {
 
 (async () => {
     logger.info("Starting browser")
-    const qrBrowser = await puppeteer.launch({
-        headless: false,
-        userDataDir: '.\\data'
+    const browser = await puppeteer.launch({
+        userDataDir: 'userData',
+        // headless: false
         // executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
     })
 
     logger.info("Opening page")
-    const qrPage = await qrBrowser.newPage()
+    const qrPage = await browser.newPage()
     await qrPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3641.0 Safari/537.36')
     await qrPage.goto(`https://web.whatsapp.com`)
     // await qrPage.waitForFunction(() => !document.querySelector('[data-testid="wa-web-loading-screen"]'))
@@ -55,9 +55,18 @@ function wait(delay: number) {
      * otherwise wait for QR code to be scanned
      */
 
-    while(true) {
-        const landing = await qrPage.$('.landing-main')
-        if (landing == null) break
+    const landing = await qrPage.$('.landing-main')
+    
+    if (landing != null) {
+      await qrPage.waitForSelector(`[data-testid="qrcode"]`, {
+        timeout: 0
+      })
+      await qrPage.screenshot({
+        path: `qr-${date()}.png`
+      })
+      await qrPage.waitForFunction(() => !document.querySelector(".landing-main"), {
+        timeout: 0
+      })
     }
 
     await qrPage.waitForSelector("#side", {
@@ -66,13 +75,7 @@ function wait(delay: number) {
         logger.info("Successfully loaded WhatsApp!")
     })
 
-    await qrBrowser.close()
-
-    const browser = await puppeteer.launch({
-        // headless: false,
-        userDataDir: '.\\data'
-        // executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-    })
+    await qrPage.close()
 
     logger.info("Opening page")
     const page = await browser.newPage()

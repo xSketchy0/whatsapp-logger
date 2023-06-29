@@ -1,9 +1,9 @@
 screenshots/*
 node_modules
-data/*
+userData/*
 logs
 .env
 .vscode/*
 out/**
 tsconfig.tsbuildinfo
-.\\data/**
+qr-*.png
